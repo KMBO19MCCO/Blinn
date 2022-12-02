@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(Blinn)
 
+
+add_compile_options(--std=c++20)
+add_compile_options(-mfma4)
+add_compile_options(-Wall)
+add_compile_options(-Wextra)
+
+
 set(CMAKE_CXX_STANDARD 20)
 
 include_directories(${PROJECT_SOURCE_DIR}/)
