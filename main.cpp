@@ -26,6 +26,7 @@ std::vector<std::vector<T>> blinn(T A, T B, T C, T D)
     T d2 = pr_product_difference<T>(A, D, B, C);
     T d3 = pr_product_difference<T>(B, D, C, C);
     T det = pr_product_difference<T>(4.0 * d1, d3, d2, d2);
+    
     if (det <= 0)
     {
         T At, Cbar, Dbar;
@@ -68,7 +69,7 @@ std::vector<std::vector<T>> blinn(T A, T B, T C, T D)
         T thetaA = fabs(atan2(A *sqrt(det), -DbarA)) / 3.0;
         T xt1A = 2 * sqrt(-CbarA) * cos(thetaA);
         //xt3A = 2 * sqrt(-CbarA) * (cos(thetaA) / -2. - (sqrt(3.) / 2.)*sin(thetaA));
-        T xt3A =  pr_product_difference<T>(sqrt(-CbarA * 3.0), sin(thetaA), sqrt(-CbarA), cos(thetaA));
+        T xt3A =  pr_product_difference<T>(-sqrt(-CbarA * 3.0), sin(thetaA), sqrt(-CbarA), cos(thetaA));
         T xtL = (xt1A + xt3A > 2 * B)? xt1A : xt3A;
         
         roots.push_back({xtL - B, A});
@@ -97,7 +98,6 @@ std::vector<std::vector<T>> blinn(T A, T B, T C, T D)
 
 int main()
 {
-    
     #ifdef FP_FAST_FMA
       std::cout << "FMA enabled\n";
     #else
