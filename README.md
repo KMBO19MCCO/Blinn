@@ -14,5 +14,5 @@ mkdir build
 cd build
 cmake ..
 cmake --build .
-./blinn
+./Blinn
 ```
