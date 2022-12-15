@@ -21,6 +21,9 @@ class Blinn
 public:
     Blinn(T A, T B, T C, T D, T t, T u, T k): m_A(A), m_B(B), m_C(C), m_D(D), m_t(t), m_u(u), m_k(k)
     {
+        m_B /= static_cast<T>(3.0);
+        m_C /= static_cast<T>(3.0);
+        
         //calc square of params
         m_t2 = std::pow(m_t, 2);
         m_u2 = std::pow(m_u, 2);
@@ -36,7 +39,7 @@ public:
         m_s2 = std::pow(m_s, 2);
         m_v2 = std::pow(m_v, 2);
         
-        
+       
         //---first covariant---
         first_covariant();
         
@@ -60,26 +63,53 @@ public:
         //case 3: 1 real root of multiplicity 3
         if(!m_delta1 && !m_delta2 && !m_delta3)
         {
-           return 3; //amount of real roots;
+            roots[0] = -9999;
+            roots[1] = -9999;
+            roots[2] = -9999;
+            
+            return 3; //amount of real roots;
         }
         //case 21: 1 real root of multiplicity 2
         //*****and 1 real root of multiplicity 1
         else if(is_equal(m_detH, static_cast<T>(0.0)))
         {
+            roots[0] = -9999;
+            roots[1] = -9999;
+            roots[2] = -9999;
+            
             return 3; //amount of real roots;
         }
         //case 111: 3 real roots
         else if(m_detH > static_cast<T>(0.0))
         {
+            T teta = static_cast<T>(1.0/3.0) * std::atan(fma(m_coefs_tilda[0], std::sqrt(m_detH), m_Dj));
+            T cos_teta = std::cos(teta);
+            T sin_teta = std::sin(teta);
+            
+            T coef = static_cast<T>(2.0) * std::sqrt(-m_Cj); 
+            T half = static_cast<T>(1.0/2.0);
+            T three_div_two = std::sqrt(static_cast<T>(3.0)) / static_cast<T>(2.0);
+                
+            roots[0] = coef * cos_teta;
+            roots[1] = coef * (three_div_two * sin_teta - half * cos_teta);
+            roots[2] = coef * (-three_div_two * sin_teta - half * cos_teta);
+            
             return 3; //amount of real roots;
         }
         //case 11^: 1 real root and 1 complex-conjugate root
         else if(m_detH < static_cast<T>(0.0))  
         {
-        
+            T det_sqrt = std::sqrt(-m_detH);
+            T p = (-m_Dj + m_coefs_tilda[0] * det_sqrt) / static_cast<T>(2.0);
+            p = std::cbrt(p);
+            
+            T q = (-m_Dj - m_coefs_tilda[0] * det_sqrt) / static_cast<T>(2.0);
+            q = std::cbrt(q);
+            
+            roots[0] = p + q;
             return 1; //amount of real roots;
         }
-        //no case
+        //no case: return -1, because idk.
         else
         {
             return -1;
@@ -108,7 +138,7 @@ private:
     T m_v2;
     
     //Result of first covariant
-    Vector4T<T> m_coefs;
+    Vector4T<T> m_coefs_tilda;
     
     //Result of second covariant
     T m_delta1;
@@ -155,7 +185,7 @@ private:
         T_big(3, 2) = static_cast<T>(3.0) * m_s * m_v2;
         T_big(3, 3) = std::pow(m_v, 3);
         
-        m_coefs = T_big * coefs;
+        m_coefs_tilda = T_big * coefs;
     }
     
     void second_covariant()
@@ -208,8 +238,9 @@ std::pair<T, T> testPolynomial(unsigned int roots_count)
     std::vector<T> roots_computed(roots_count); 
     std::vector<T> roots(roots_count);
     std::vector<T> coefficients(roots_count + 1); 
+    
     generate_polynomial<T>(roots_count, 0, roots_count, 0, 1e-10, -1.0, 1.0, roots, coefficients);
- 
+    
     Blinn<T> solver(coefficients[3], coefficients[2], coefficients[1], coefficients[0], t, u, 1);
     
     int cnt_real_roots = solver.solve(roots_computed); // находим число вещ.корней и сами корни
@@ -239,8 +270,9 @@ int main()
     float max_absolut_deviation = 0;
     float max_relative_deviation = 0;
     
-    for (auto i = 0; i < 10'000'000; ++i) 
+    for (auto i = 0; i < 10; ++i) 
     {
+         
         auto deviation = testPolynomial<float>(3);
         
         if (deviation.first > max_absolut_deviation) 
