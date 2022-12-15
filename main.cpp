@@ -50,10 +50,41 @@ public:
     
     ~Blinn(){}
     
+    bool is_equal(T a, T b)
+    {
+        return std::fabs(a - b) <= ( ( std::fabs(a) > std::fabs(b) ? std::fabs(b) : std::fabs(a) ) * std::numeric_limits<T>::epsilon());
+    }
+    
     int solve(std::vector<T> &roots)
     {
-        //soon...
-        return 0;
+        //case 3: 1 real root of multiplicity 3
+        if(!m_delta1 && !m_delta2 && !m_delta3)
+        {
+           return 3; //amount of real roots;
+        }
+        //case 21: 1 real root of multiplicity 2
+        //*****and 1 real root of multiplicity 1
+        else if(is_equal(m_detH, static_cast<T>(0.0)))
+        {
+            return 3; //amount of real roots;
+        }
+        //case 111: 3 real roots
+        else if(m_detH > static_cast<T>(0.0))
+        {
+            return 3; //amount of real roots;
+        }
+        //case 11^: 1 real root and 1 complex-conjugate root
+        else if(m_detH < static_cast<T>(0.0))  
+        {
+        
+            return 1; //amount of real roots;
+        }
+        //no case
+        else
+        {
+            return -1;
+        }
+        
     }
 
 private:
@@ -95,8 +126,6 @@ private:
     T m_Bj;
     T m_Cj;
     T m_Dj;
-    
-    
     
     //---Functions for Constructor------
     void first_covariant()
