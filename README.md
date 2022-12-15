@@ -1,7 +1,7 @@
 # Blinn
 James F. Blinn
  
-#Dependences  
+# Dependences  
 ```bash
 sudo apt-get install libeigen3-dev g++ cmake
 ```
