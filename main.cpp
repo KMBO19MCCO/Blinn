@@ -61,11 +61,12 @@ public:
     int solve(std::vector<T> &roots)
     {
         //case 3: 1 real root of multiplicity 3
-        if(!m_delta1 && !m_delta2 && !m_delta3)
+        if( is_equal(m_delta1, static_cast<T>(0.0)) && is_equal(m_delta2, static_cast<T>(0.0)) && is_equal(m_delta3, static_cast<T>(0.0)) )
         {
-            roots[0] = -9999;
-            roots[1] = -9999;
-            roots[2] = -9999;
+            std::cout << "Case 3 under dev.\n";
+            roots[0] = 0;
+            roots[1] = 0;
+            roots[2] = 0;
             
             return 3; //amount of real roots;
         }
@@ -73,9 +74,10 @@ public:
         //*****and 1 real root of multiplicity 1
         else if(is_equal(m_detH, static_cast<T>(0.0)))
         {
-            roots[0] = -9999;
-            roots[1] = -9999;
-            roots[2] = -9999;
+            std::cout << "Case 21 under dev.\n";
+            roots[0] = -1;
+            roots[1] = -1;
+            roots[2] = -1;
             
             return 3; //amount of real roots;
         }
@@ -267,13 +269,13 @@ int main()
       std::cout << "FMA disabled\n";
     #endif
 
-    float max_absolut_deviation = 0;
-    float max_relative_deviation = 0;
+    long double max_absolut_deviation = 0;
+    long double max_relative_deviation = 0;
     
     for (auto i = 0; i < 10; ++i) 
     {
          
-        auto deviation = testPolynomial<float>(3);
+        auto deviation = testPolynomial<long double>(3);
         
         if (deviation.first > max_absolut_deviation) 
         {
