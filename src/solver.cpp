@@ -105,10 +105,17 @@ void Solver<T>::second_covariant()
 {
     //T coef = std::pow(pr_product_difference<T>(m_t, m_v, m_s, m_u), 2);
     //Calc delta1, delta2 and delta3 
-    m_delta1 = pr_product_difference<T>(m_A, m_C, m_B, m_B);
+    
+    //m_delta1 = std::fma(m_A, m_C, m_B2); //!!!change to FMA breaks the program
+    m_delta1 = pr_product_difference<T>(m_A, m_C, m_B, m_B); 
     m_delta2 = pr_product_difference<T>(m_A, m_D, m_B, m_C);
-    m_delta3 = pr_product_difference<T>(m_B, m_D, m_C, m_C);
+    
+    //m_delta3 = std::fma(m_B, m_D, m_C2); //!!!change to FMA breaks the program
+    m_delta3 = pr_product_difference<T>(m_B, m_D, m_C, m_C); 
 
+    
+    
+    
     //---Init matrix H - Hessian---
     Matrix2T<T> H;
     H << static_cast<T>(2.0) * m_delta1, m_delta2, m_delta2, static_cast<T>(2.0) * m_delta3;
@@ -132,11 +139,35 @@ void Solver<T>::second_covariant()
 template<typename T>
 void Solver<T>::third_covariant()
 {
-    m_Aj = pr_product_difference<T>(m_A2, m_D, static_cast<T>(3.0)* m_A, m_B * m_C) 
-               + static_cast<T>(2.0) * (m_B2 * m_B);   
-    m_Bj = pr_product_difference<T>(m_B2, m_C, static_cast<T>(2.0), m_A * m_C2) + (m_A * m_B * m_D);
-    m_Cj = pr_product_difference<T>(m_B2, static_cast<T>(2.0) * m_D, m_B, m_C2) - (m_A * m_C * m_D);
-    m_Dj = pr_product_difference<T>(static_cast<T>(3.0) * m_B, m_C * m_D, static_cast<T>(2.0), (m_C2 * m_C) - (m_A * m_D2));
+    /*
+    We need calculate J coefs
+    In matrix form:
+        J = [t u] * H * [s v].transpose()
+    */
+    
+    //AC_B2 = (AC - B^2) = m_delta1
+    T AC_B2 = m_delta1;//std::fma(m_A, m_C, m_B2);
+    //BD_C2 = (BD - C^2) = m_delta3
+    T BD_C2 = m_delta3;//std::fma(m_B, m_D, m_C2);
+    //AD_BC = AD - BC = m_delta2
+    T AD_BC = m_delta2;//pr_product_difference<T>(m_A, m_D, m_B, m_C);
+     
+    
+    //Aj = (A^2) * D - 3ABC + 2 * (B^3) = A^2 * D - ABC + 2(B^3) - 2ABC = A(AD - BC) - 2B(AC - B^2) =
+    //= A * delta2 - 2B * delta1; 
+    m_Aj = pr_product_difference<T>(m_A, AD_BC, static_cast<T>(2.0) * m_B, AC_B2);
+    
+    //Bj = (B^2) * C - 2A(C^2) + ABD = (B^2) * C - A(C^2) + ABD - A(C^2) = -C(AC - B^2) + A(BD - C^2) = 
+    //= A * m_delta3 - C * m_delta1
+    m_Bj = pr_product_difference<T>(m_A, BD_C2, m_C, AC_B2);
+    
+    //Cj = 2D(B^2) - B(C^2) - ACD = D(B^2) - B(C^2) +  D(B^2) - ACD = B(BD - C^2) - D(AC - B^2) =
+    //= B * m_delta3 - D * m_delta1
+    m_Cj = pr_product_difference<T>(m_B, BD_C2, m_D, AC_B2);
+    
+    //Dj = 3BCD - 2(C^3) - A(D^2) = 2BCD - 2(C^3) + BCD - A(D^2) = 2C(BD - C^2) - D(AD - BC) =
+    // = 2C * delta3 - D * delta2
+    m_Dj = pr_product_difference<T>(static_cast<T>(2.0) * m_C, BD_C2, m_D, AD_BC);
 
     Vector4T<T> J;
     J << m_Aj, m_Bj, m_Cj, m_Dj;
@@ -166,9 +197,14 @@ template<typename T>
 int Solver<T>::solve(std::vector <T>& roots)
 {
     T A_line = m_coefs_tilda[0];
-    //T B_line = static_cast<T>(0.0);
-    //T C_line = (m_t2 * m_H_tilda(0,0) + m_t * m_u * m_H_tilda(0,1) + m_u2 * m_H_tilda(1,1) ) / 2.0;
-    T C_line = ( pr_product_difference<T>(m_t2, m_H_tilda(0,0), -m_u2, m_H_tilda(1,1)) + (m_t * m_u * m_H_tilda(0,1)) ) / static_cast<T>(2.0);
+    //T B_line = static_cast<T>(0.0); //we dont use this var in code
+    
+    //C_line = [(t^2) * H(0,0) + tu * H(0,1) + (u^2) * H(1,1)] * 0.5 = 
+    //=[t^2 * 2 * delta1 + tu * delta2 + (u^2) * 2 * delta3] * 0.5 = 
+    //= (t^2 * delta1) + (tu * 0.5 * delta2) + ((u^2) * delta3) = 
+    //= (t^2 * delta1) + (tu * 0.25 * delta2) + (tu * 0.25 * delta2) + ((u^2) * delta3) =
+    //= t(t*delta1 + 0.25u * delta2) + u(u *delta3 + 0.25t * delta2)
+    T C_line = m_t * pr_product_difference<T>(m_t, m_delta1, static_cast<T>(-0.25) * m_u, m_delta2) + m_u * pr_product_difference<T>(m_u, m_delta3, static_cast<T>(-0.25) * m_t, m_delta2);
     T D_line = m_TJ[0];
     
     if(m_detH < static_cast<T>(0.0))
@@ -215,7 +251,10 @@ std::pair<T,T> Solver<T>::L_root()
 {
     //CbarA: the minus sign that occurs in formulas for the root L in a variable
     T CbarA = -m_delta1;
-    T DbarA = pr_product_difference<T>(m_A, m_delta2, static_cast<T>(2.0) * m_B, m_delta1);
+    
+    //DbarA = A * delta_2 -2B * delta1 =  mA_j
+    T DbarA = m_Aj;
+    
     T thetaA = std::fabs(std::atan2(m_A * std::sqrt(m_detH), -DbarA)) / static_cast<T>(3.0);
     T xt1A = 2 * std::sqrt(CbarA) * cos(thetaA);
     //xt3A = 2 * sqrt(-CbarA) * (cos(thetaA) / -2. - (sqrt(3.) / 2.)*sin(thetaA));
@@ -229,13 +268,17 @@ template<typename T>
 std::pair<T,T> Solver<T>::S_root()
 {
     T CbarD = m_delta3;
-    T DbarD = pr_product_difference<T>(static_cast<T>(2.0) * m_C, m_delta3, m_D, m_delta2);
+    //DbarD = 2C * delta3 - D * delta2 = Dj
+    T DbarD = m_Dj;
+    
     T thetaD = std::fabs(std::atan2(m_D * std::sqrt(m_detH), -DbarD)) / static_cast<T>(3.0);
-    T xt1D = static_cast<T>(2.0) * std::sqrt(-CbarD) * cos(thetaD); 
-    //T xt3D = 2 * sqrt(-CbarD) * (cos(thetaD) / -2.0 - (sqrt(3.0) / 2.0) *sin(thetaD));
-    T xt3D = pr_product_difference<T>(-std::sqrt(-CbarD), cos(thetaD), std::sqrt(-CbarD * 3.0), sin(thetaD)); 
+    T xt1D = static_cast<T>(2.0) * std::sqrt(-CbarD) * std::cos(thetaD); 
+    
+    //xt3D = 2 * sqrt(-CbarD) * [cos(thetaD) / -2.0 - (sqrt(3.0) / 2.0) *sin(thetaD)] =
+    //= sqrt(-CbarD) * [-cos(thetaD) - sqrt(3) * sin(thetaD)] =  -sqrt(-CbarD) * cos(thetaA) - sqrt(-Cbar * 3) * sin(thetaA)
+    T xt3D = pr_product_difference<T>(-std::sqrt(-CbarD), std::cos(thetaD), std::sqrt(-CbarD * static_cast<T>(3.0)), std::sin(thetaD)); 
+   
     T xtS = (xt1D + xt3D < static_cast<T>(2.0) * m_C)? xt1D : xt3D;
-
     return std::make_pair(-m_D, xtS + m_C);
 
 }
