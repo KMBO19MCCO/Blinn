@@ -2,8 +2,11 @@
 #include <Eigen/Dense>
 
 //"Using" keyword in header file is very bad
-//I wrote this comment only for your understanding code.
+//I wrote this comment only for your understanding code in solver.cpp
 /*---Aliases---
+template<typename T>
+using Vector2T = Eigen::Matrix<T, 2, 1>;
+
 template<typename T>
 using Vector4T = Eigen::Matrix<T, 4, 1>;
 
@@ -66,6 +69,7 @@ private:
     T m_delta3;
     T m_detH;
     
+    Eigen::Matrix<T, 2, 2> m_T_lit;
     Eigen::Matrix<T, 2, 2> m_H_tilda;
     
     //V PART: Third covariant
@@ -79,7 +83,7 @@ private:
     //-----------------------------
     
     //---Cases OF SOLVING---
-    T det_less_zero(T Cbar, T Dbar);
+    T det_less_zero(T At, T Cbar, T Dbar);
     
     //Roots for det > 0
     std::pair<T,T> L_root();

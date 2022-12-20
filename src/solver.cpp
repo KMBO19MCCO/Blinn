@@ -7,6 +7,9 @@
 
 //---Aliases---
 template<typename T>
+using Vector2T = Eigen::Matrix<T, 2, 1>;
+
+template<typename T>
 using Vector4T = Eigen::Matrix<T, 4, 1>;
 
 template<typename T>
@@ -104,11 +107,10 @@ void Solver<T>::second_covariant()
     H << static_cast<T>(2.0) * m_delta1, m_delta2, m_delta2, static_cast<T>(2.0) * m_delta3;
     m_detH   = pr_product_difference<T>(4 * m_delta1, m_delta3, m_delta2, m_delta2);
 
-    Matrix2T<T> mat_params;
-    mat_params << m_t, m_u, m_s, m_v;
+    m_T_lit << m_t, m_u, m_s, m_v;
 
     //Calc delta tilda
-    m_H_tilda = mat_params * H * mat_params.transpose(); // maybe add * coef
+    m_H_tilda = m_T_lit * H * m_T_lit.transpose(); // maybe add * coef
     
     /*
     m_delta1_tilda = mat_delta_tilda(0,0) / static_cast<T>(2.0);
@@ -132,7 +134,7 @@ void Solver<T>::third_covariant()
     Vector4T<T> J;
     J << m_Aj, m_Bj, m_Cj, m_Dj;
     m_TJ = m_T_big * J;
-    }
+}
 
 //Finally, constructor
 template<typename T>
@@ -154,18 +156,51 @@ Solver<T>::Solver(const std::vector<T>& coefs)
 
 //---CASES OF SOLVING---
 template<typename T>
-T Solver<T>::det_less_zero(T Cbar, T Dbar)
+int Solver<T>::solve(std::vector <T>& roots)
 {
-    T At = (std::pow(m_B, 3) * m_D >= std::pow(m_C, 3) * m_A)? m_A : m_D;
+    T A_line = m_coefs_tilda[0];
+    //T B_line = static_cast<T>(0.0);
+    //T C_line = (m_t2 * m_H_tilda(0,0) + m_t * m_u * m_H_tilda(0,1) + m_u2 * m_H_tilda(1,1) ) / 2.0;
+    T C_line = ( pr_product_difference<T>(m_t2, m_H_tilda(0,0), -m_u2, m_H_tilda(1,1)) + (m_t * m_u * m_H_tilda(0,1)) ) / static_cast<T>(2.0);
+    T D_line = m_TJ[0];
+    
+    if(m_detH < static_cast<T>(0.0))
+    {
+        T r = det_less_zero(A_line, C_line, D_line);
+        roots.push_back(r);
+        return 1;
+    }
+    else
+    {
+        auto L = L_root();
+        auto S = S_root();
+        auto M = M_root(L.first, L.second, S.first, S.second);
+        
+        roots.push_back(L.first / L.second);
+        roots.push_back(S.first / S.second);
+        roots.push_back(M.first / M.second);
+        return 3;
+    }
+}
+
+
+template<typename T>
+T Solver<T>::det_less_zero(T At, T Cbar, T Dbar)
+{
+    //T At = (std::pow(m_B, 3) * m_D >= std::pow(m_C, 3) * m_A)? m_A : m_D;
 
     T T0 = -std::copysign(std::fabs(At) * std::sqrt(-m_detH), Dbar);
     T T1 = -Dbar + T0;
     T p = std::cbrt(T1 / static_cast<T>(2.0));
     T q = is_equal(T0, T1) ? (-p) : (-Cbar / p);
+    
     T xt1 = (Cbar <= static_cast<T>(0.0)) ? (p + q) : (-Dbar / (fma(p,p, fma(q,q, Cbar))));
     
-    return (std::pow(m_B, 3) * m_D >= std::pow(m_C, 3) * m_A)? ((xt1 - m_B) / m_A) : (-m_D / (xt1 + m_C));
+    Vector2T<T> solution_tmp;
+    solution_tmp << xt1, static_cast<T>(1.0);
+    auto solution = solution_tmp.transpose() * m_T_lit;
     
+    return solution(0,0) / solution(0,1);
 }
 
 template<typename T>
@@ -173,7 +208,7 @@ std::pair<T,T> Solver<T>::L_root()
 {
     //CbarA: the minus sign that occurs in formulas for the root L in a variable
     T CbarA = -m_delta1;
-    T DbarA = pr_product_difference<T>(m_A, m_delta2, 2 * m_B, m_delta1);
+    T DbarA = pr_product_difference<T>(m_A, m_delta2, static_cast<T>(2.0) * m_B, m_delta1);
     T thetaA = std::fabs(std::atan2(m_A * std::sqrt(m_detH), -DbarA)) / static_cast<T>(3.0);
     T xt1A = 2 * std::sqrt(CbarA) * cos(thetaA);
     //xt3A = 2 * sqrt(-CbarA) * (cos(thetaA) / -2. - (sqrt(3.) / 2.)*sin(thetaA));
@@ -209,37 +244,10 @@ std::pair<T,T> Solver<T>::M_root(T root00, T root01, T root10, T root11)
                               pr_product_difference<T>(m_C, E, m_B, F));
 }
 
-template<typename T>
-int Solver<T>::solve(std::vector <T>& roots)
-{
-    T A_line = m_coefs_tilda[0];
-    T B_line = static_cast<T>(0.0);
-    T C_line = (m_t2 * m_H_tilda(0,0) + m_t * m_u * m_H_tilda(0,1) + m_u2 * m_H_tilda(1,1) ) / 2.0;
-    T D_line = m_TJ[0];
-    
-    if(m_detH < static_cast<T>(0.0))
-    {
-        T r = det_less_zero(C_line, D_line);
-        roots.push_back(r);
-        return 1;
-    }
-    else
-    {
-        auto L = L_root();
-        auto S = S_root();
-        auto M = M_root(L.first, L.second, S.first, S.second);
-        
-        roots.push_back(L.first / L.second);
-        roots.push_back(S.first / S.second);
-        roots.push_back(M.first / M.second);
-        return 3;
-    }
-}
 //----------------------------------------------
 
+
+//Technical Chocolate
 template class Solver<long double>;
 template class Solver<double>;
 template class Solver<float>;
-
-
-

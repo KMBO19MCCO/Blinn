@@ -15,7 +15,7 @@ std::pair<T, T> testPolynomial(unsigned int roots_count)
     std::vector<T> roots(roots_count);
     std::vector<T> coefficients(roots_count + 1); 
     
-    generate_polynomial<T>(roots_count, 0, roots_count, 0, 1e-10, -1.0, 1.0, roots, coefficients);
+    generate_polynomial<T>(roots_count, 0, roots_count, 0, 1e-15, -1.0, 1.0, roots, coefficients);
     
     Solver<T> solver(coefficients);
     
@@ -46,7 +46,7 @@ int main()
     long double max_absolut_deviation = 0;
     long double max_relative_deviation = 0;
     
-    for (auto i = 0; i < 1'000'000; ++i) 
+    for (auto i = 0; i < 5'000'000; ++i) 
     {
          
         auto deviation = testPolynomial<long double>(3);
