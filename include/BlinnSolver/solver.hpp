@@ -41,6 +41,12 @@ private:
     T m_B;
     T m_C;
     T m_D;
+    
+    //square of coefs
+    T m_A2;
+    T m_B2;
+    T m_C2;
+    T m_D2;
 
     //II PART: calc params and sqare of params. By default, t = 1 and u = 0;
     void calc_params();

@@ -41,7 +41,14 @@ void Solver<T>::normalize_coefs()
         m_D /= m_A;
         m_A = static_cast<T>(1.0);
     }
-
+    
+    //square of coefs
+    m_A2 = m_A * m_A;    
+    m_B2 = m_B * m_B;
+    m_C2 = m_C * m_C;
+    m_D2 = m_D * m_D;
+    
+    
     m_coefs << m_A, m_B, m_C, m_D;
 }
 
@@ -50,10 +57,10 @@ template<typename T>
 void Solver<T>::calc_params()
 {
         m_t = static_cast<T>(1.0);
-        m_t2 = std::pow(m_t, 2);
+        m_t2 = m_t * m_t;
 
         m_u = static_cast<T>(0.0);
-        m_u2 = std::pow(m_u, 2);
+        m_u2 = m_u * m_u;
         
         auto tmp = [&](T X, T Y, T Z) 
         {return (pr_product_difference<T>(m_t2, X, -m_u2, Z) + (2 * m_t * m_u * Y));};
@@ -61,18 +68,18 @@ void Solver<T>::calc_params()
         m_s = -tmp(m_B, m_C, m_D);
         m_v = tmp(m_A, m_B, m_C);
         
-        m_s2 = std::pow(m_s, 2);
-        m_v2 = std::pow(m_v, 2);
+        m_s2 = m_s * m_s;
+        m_v2 = m_v * m_v;
 }
 
 //III PART of constructor
 template<typename T>
 void Solver<T>::first_covariant()
 {
-    m_T_big(0, 0) = std::pow(m_t, 3);
+    m_T_big(0, 0) = m_t2 * m_t;
     m_T_big(0, 1) = static_cast<T>(3.0) * m_u * m_t2;
     m_T_big(0, 2) = static_cast<T>(3.0) * m_t * m_u2;
-    m_T_big(0, 3) = std::pow(m_u, 3);
+    m_T_big(0, 3) = m_u2 * m_u;
      
     m_T_big(1, 0) = m_t2 * m_s;
     m_T_big(1, 1) = pr_product_difference<T>(static_cast<T>(2.0) * m_t, m_u * m_s, -m_t2, m_v);
@@ -84,10 +91,10 @@ void Solver<T>::first_covariant()
     m_T_big(2, 2) = pr_product_difference<T>(static_cast<T>(2.0) * m_u, m_s * m_v, -m_v2, m_t);
     m_T_big(2, 3) = m_u2 * m_v;
 
-    m_T_big(3, 0) = std::pow(m_s, 3);
+    m_T_big(3, 0) = m_s2 * m_s;
     m_T_big(3, 1) = static_cast<T>(3.0) * m_v * m_s2;
     m_T_big(3, 2) = static_cast<T>(3.0) * m_s * m_v2;
-    m_T_big(3, 3) = std::pow(m_v, 3);
+    m_T_big(3, 3) = m_v2 * m_v;
     
     m_coefs_tilda = m_T_big * m_coefs;
 }
@@ -125,11 +132,11 @@ void Solver<T>::second_covariant()
 template<typename T>
 void Solver<T>::third_covariant()
 {
-    m_Aj = pr_product_difference<T>(std::pow(m_A, 2), m_D, static_cast<T>(3.0)* m_A, m_B * m_C) 
-               + static_cast<T>(2.0) * std::pow(m_B, 3);   
-    m_Bj = pr_product_difference<T>(std::pow(m_B, 2), m_C, static_cast<T>(2.0), m_A * std::pow(m_C, 2)) + (m_A * m_B * m_D);
-    m_Cj = pr_product_difference<T>(std::pow(m_B, 2), static_cast<T>(2.0) * m_D, m_B, std::pow(m_C, 2)) - (m_A * m_C * m_D);
-    m_Dj = pr_product_difference<T>(static_cast<T>(3.0) * m_B, m_C * m_D, static_cast<T>(2.0), std::pow(m_C, 3)) - (m_A * std::pow(m_D, 2));
+    m_Aj = pr_product_difference<T>(m_A2, m_D, static_cast<T>(3.0)* m_A, m_B * m_C) 
+               + static_cast<T>(2.0) * (m_B2 * m_B);   
+    m_Bj = pr_product_difference<T>(m_B2, m_C, static_cast<T>(2.0), m_A * m_C2) + (m_A * m_B * m_D);
+    m_Cj = pr_product_difference<T>(m_B2, static_cast<T>(2.0) * m_D, m_B, m_C2) - (m_A * m_C * m_D);
+    m_Dj = pr_product_difference<T>(static_cast<T>(3.0) * m_B, m_C * m_D, static_cast<T>(2.0), (m_C2 * m_C) - (m_A * m_D2));
 
     Vector4T<T> J;
     J << m_Aj, m_Bj, m_Cj, m_Dj;
