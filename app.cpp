@@ -46,7 +46,7 @@ int main()
     long double max_absolut_deviation = 0;
     long double max_relative_deviation = 0;
     
-    for (auto i = 0; i < 10'000'000; ++i) 
+    for (auto i = 0; i < 1'000'000; ++i) 
     {
          
         auto deviation = testPolynomial<long double>(3);

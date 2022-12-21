@@ -30,8 +30,8 @@ public:
     
     //Compare floating-point numbers
     bool is_equal(T a, T b);
-private:
 
+private:
     //---PARTS OF CONSTRUCTOR AND VARs---
     //I PART: normalize coefs! B and C divide by 3, all coefs (include B and C) divide by A.
     void normalize_coefs();
