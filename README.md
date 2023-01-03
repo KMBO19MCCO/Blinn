@@ -12,5 +12,5 @@ git clone --recurse-submodules git@github.com:KMBO19MCCO/Blinn.git
 cd Blinn
 cmake -S . -B build
 cmake --build build
-./Blinn
+./build/Blinn
 ```
