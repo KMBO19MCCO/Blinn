@@ -9,6 +9,8 @@ add_compile_options(-Wall)
 add_compile_options(-Wextra)
 
 find_package(Eigen3 REQUIRED)
+find_package(OpenMP REQUIRED)
+
 
 add_subdirectory(src)
 
@@ -18,7 +20,7 @@ add_subdirectory(excerpt)
 link_directories(${PROJECT_SOURCE_DIR}/excerpt)
 
 add_executable(${PROJECT_NAME} app.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC excerpt BlinnSolver)
+target_link_libraries(${PROJECT_NAME} PUBLIC excerpt BlinnSolver OpenMP::OpenMP_CXX)
 
 
 

@@ -1,7 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <utility>
-	
+#include <omp.h>
+
 #include <BlinnSolver/solver.hpp>
 #include <excerpt/excerpt.h>
 
