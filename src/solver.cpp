@@ -1,4 +1,5 @@
 #include <cmath>
+#include <complex>
 #include <BlinnSolver/solver.hpp>
 
 #include <Eigen/Dense>
